@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+#
+# This script checks whether fermat keys have any other primes
+# between their p and q value.
+
+import os
+import sys
+import gmpy2
+import badkeys
+
+xdir = sys.argv[1]
+
+for fn in os.listdir(xdir):
+    with open(f"{xdir}/{fn}") as f:
+        crt = f.read()
+        r = badkeys.detectandcheck(crt)
+        p = int(r["results"]["fermat"]["p"])
+        q = int(r["results"]["fermat"]["q"])
+        if p > q:
+            t = p
+            p = q
+            q = t
+        for x in range(p + 1, q):
+            if gmpy2.is_prime(x):
+                print(f"prime found in {fn}")
