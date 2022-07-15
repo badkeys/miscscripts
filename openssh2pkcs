@@ -1,0 +1,24 @@
+#!/usr/bin/python3
+# convert "OPENSSH PRIVATE KEY" format to standard PKCS/PEM
+
+import sys
+from cryptography.hazmat.primitives import serialization
+
+with open(sys.argv[1], "rb") as f:
+    key = f.read()
+
+ckey = serialization.load_ssh_private_key(key, password=None)
+
+try:
+    pem = ckey.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+except ValueError:
+    pem = ckey.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+print(pem.decode(), end="")
