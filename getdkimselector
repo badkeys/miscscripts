@@ -1,0 +1,69 @@
+#!/usr/bin/python3
+
+import argparse
+import email.parser
+import mailbox
+import os
+
+allheaders = [
+    "DKIM-Signature",
+    "ARC-Seal",
+    "ARC-Message-Signature",
+    "X-Google-DKIM-Signature",
+    "X-Original-DKIM-Signature",
+    "DomainKey-Signature",
+]
+
+
+def parse_mail(em):
+    for xheader in allheaders:
+        sigs = em.get_all(xheader)
+        if sigs is None:
+            continue
+        for header in sigs:
+            sig = str(header)
+            sig = sig.replace("\n", "").replace(" ", "").replace("\t", "")
+            dkim = {}
+            for f in sig.split(";"):
+                fs = f.split("=", 2)
+                if len(fs) != 2:
+                    continue
+                dkim[fs[0]] = fs[1]
+            if args.verbose:
+                print(sig)
+                print(dkim)
+            if ("d" not in dkim) or ("s" not in dkim):
+                # looks invalid
+                continue
+            newhost = f"{dkim['s']}._domainkey.{dkim['d']}"
+            if newhost not in hosts:
+                hosts.add(newhost)
+                print(newhost)
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("path")
+ap.add_argument("-v", "--verbose", action="store_true")
+ap.add_argument("-m", "--mbox", action="store_true")
+args = ap.parse_args()
+
+hosts = set()
+for root, _, files in os.walk(args.path):
+    for name in files:
+        fn = os.path.join(root, name)
+
+        if args.mbox:
+            mb = mailbox.mbox(fn)
+            try:
+                for m in mb.iteritems():
+                    parse_mail(m[1])
+            except UnicodeDecodeError:
+                pass
+
+        else:  # maildir mode
+            with open(fn, "rb") as fp:
+                try:
+                    parse_mail(email.message_from_binary_file(fp))
+                except Exception as e:
+                    print(f"Something went wrong while parsing {fn}")
+                    print(e)
