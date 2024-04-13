@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+import argparse
+import base64
+import binascii
+import sys
+
+from cryptography.hazmat.primitives.asymmetric import ed448, ed25519
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
+
+ap = argparse.ArgumentParser()
+ap.add_argument("key", help="raw key (default: base64, Ed25519 public key)")
+ap.add_argument("-x", "--hex", action="store_true", help="hex input instead of base64")
+ap.add_argument("--ed25519priv", action="store_true", help="Ed448 private key")
+ap.add_argument("--ed448pub", action="store_true", help="Ed448 public key")
+ap.add_argument("--ed448priv", action="store_true", help="Ed448 private key")
+args = ap.parse_args()
+
+if args.ed448priv or args.ed448pub:
+    LEN = 57
+else:
+    LEN = 32
+
+if args.hex:
+    binx = binascii.unhexlify(args.key)
+else:
+    binx = base64.b64decode(args.key)
+if len(binx) != LEN:
+    print(f"{len(binx)}b wrong length ({LEN}b expected)")
+    sys.exit(1)
+
+if args.ed448priv:
+    key = ed448.Ed448PrivateKey.from_private_bytes(binx)
+    pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+elif args.ed448pub:
+    key = ed448.Ed448PublicKey.from_public_bytes(binx)
+    pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+#    pem = key.public_bytes(Encoding.OpenSSH, PublicFormat.OpenSSH)
+elif args.ed25519priv:
+    key = ed25519.Ed25519PrivateKey.from_private_bytes(binx)
+    pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+else:
+    key = ed25519.Ed25519PublicKey.from_public_bytes(binx)
+    pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+
+print(pem.decode(), end="")
