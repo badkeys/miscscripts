@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import sys
 
+from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
 ap = argparse.ArgumentParser()
@@ -18,21 +19,32 @@ args = ap.parse_args()
 for fn in args.files:
     with open(fn, "rb") as f:
         d = f.read()
-    if b"PRIVATE KEY-----" in d:
-        try:
+    try:
+        if b"PRIVATE KEY-----" in d:
             key = serialization.load_pem_private_key(d, password=None)
-        except ValueError:
+            pubkey = key.public_key()
+        elif b"PUBLIC KEY-----" in d:
+            pubkey = serialization.load_pem_public_key(d)
+        elif b"-----BEGIN CERTIFICATE-----" in d:
+            crt = x509.load_pem_x509_certificate(d)
+            pubkey = crt.public_key()
+        elif b"-----BEGIN CERTIFICATE REQUEST-----" in d:
+            csr = x509.load_pem_x509_csr(d)
+            pubkey = csr.public_key()
+        else:
             if not args.quiet:
-                print(f"WARNING: unparsable key in {fn}", file=sys.stderr)
+                print(f"WARNING: no key in {fn}", file=sys.stderr)
             continue
-        derkey = key.public_key().public_bytes(
-            serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        spki = hashlib.sha256(derkey).hexdigest()
-    else:
+    except ValueError:
         if not args.quiet:
-            print(f"WARNING: no key in {fn}", file=sys.stderr)
+            print(f"WARNING: unparsable key in {fn}", file=sys.stderr)
         continue
+
+    derkey = pubkey.public_bytes(
+        serialization.Encoding.DER,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    spki = hashlib.sha256(derkey).hexdigest()
 
     if args.nofilename:
         print(spki)
