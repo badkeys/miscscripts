@@ -1,0 +1,40 @@
+#!/usr/bin/python3
+#
+# calculates spkisha256 hash from:
+# * private keys (PKCS1/PKCS8)
+
+import argparse
+import hashlib
+import sys
+
+from cryptography.hazmat.primitives import serialization
+
+ap = argparse.ArgumentParser()
+ap.add_argument("files", nargs="+")
+ap.add_argument("-n", "--nofilename", action="store_true", help="Don't print filename")
+ap.add_argument("-q", "--quiet", action="store_true", help="Suppress warnings")
+args = ap.parse_args()
+
+for fn in args.files:
+    with open(fn, "rb") as f:
+        d = f.read()
+    if b"PRIVATE KEY-----" in d:
+        try:
+            key = serialization.load_pem_private_key(d, password=None)
+        except ValueError:
+            if not args.quiet:
+                print(f"WARNING: unparsable key in {fn}", file=sys.stderr)
+            continue
+        derkey = key.public_key().public_bytes(
+            serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        spki = hashlib.sha256(derkey).hexdigest()
+    else:
+        if not args.quiet:
+            print(f"WARNING: no key in {fn}", file=sys.stderr)
+        continue
+
+    if args.nofilename:
+        print(spki)
+    else:
+        print(f"{spki} {fn}")
