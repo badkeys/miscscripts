@@ -1,0 +1,63 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+
+import cryptography
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import dsa, ec, rsa
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+rdat = b"MU4E9,5Z3xDm4NkrwZiJ"
+
+
+def checkkeyfile(fp, quiet=False):
+    with open(fp, "rb") as f:
+        d = f.read()
+    try:
+        key = load_pem_private_key(d, password=None)
+    except ValueError as e:
+        if repr(e) == "Invalid private key":
+            print(f"{fp} looks like invalid RSA key")
+        else:
+            print(f"{fp} does not contain parsable key")
+        return
+
+    if isinstance(key, rsa.RSAPrivateKey):
+        # checked on import so ok
+        if not quiet:
+            print(f"RSA key ok in {fp}")
+    elif isinstance(key, ec.EllipticCurvePrivateKey):
+        sig = key.sign(rdat, ec.ECDSA(hashes.SHA256()))
+        pubkey = key.public_key()
+        try:
+            pubkey.verify(sig, rdat, ec.ECDSA(hashes.SHA256()))
+            if not quiet:
+                print(f"EC key ok in {fp}")
+        except cryptography.exceptions.InvalidSignature:
+            print(f"Invalid EC key in {fp}")
+    elif isinstance(key, dsa.DSAPrivateKey):
+        sig = key.sign(rdat, hashes.SHA256())
+        pubkey = key.public_key()
+        try:
+            pubkey.verify(sig, rdat, hashes.SHA256())
+            if not quiet:
+                print(f"DSA key ok in {fp}")
+        except cryptography.exceptions.InvalidSignature:
+            print(f"Invalid DSA key in {fp}")
+    else:
+        print(f"Cannot verify key type {type(key)} in {fp}")
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input", nargs="+", help="dir or files")
+ap.add_argument("-q", "--quiet", action="store_true")
+args = ap.parse_args()
+
+for f in args.input:
+    if os.path.isdir(f):
+        for root, _, files in os.walk(f):
+            for fn in files:
+                checkkeyfile(os.path.join(root, fn), args.quiet)
+    else:
+        checkkeyfile(f, args.quiet)
