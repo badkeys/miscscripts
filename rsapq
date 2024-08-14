@@ -1,0 +1,46 @@
+#!/usr/bin/python3
+#
+# Check for "unusual" RSA keys with p<q
+#
+# RSA implementations usually create private keys with the first prime p
+# larger than the second prime q (p>q).
+#
+# There is, however, no requirement, and keys encoded with p<q usually
+# work, they are "just" unusual. They may break in some implementations.
+#
+# See also: https://bugzilla.mozilla.org/show_bug.cgi?id=1049435
+
+import argparse
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+ap = argparse.ArgumentParser()
+ap.add_argument("files", nargs="+")
+ap.add_argument("-q", "--quiet", action="store_true", help="only output unusual keys")
+args = ap.parse_args()
+
+for fn in args.files:
+    with open(fn, "rb") as f:
+        pem = f.read()
+    try:
+        key = load_pem_private_key(pem, password=None)
+    except Exception:
+        if not args.quiet:
+            print(f"{fn}: cannot import key")
+        continue
+
+    if not isinstance(key, rsa.RSAPrivateKey):
+        if not args.quiet:
+            print(f"{fn}: No RSA key")
+        continue
+
+    p = key.private_numbers().p
+    q = key.private_numbers().q
+
+    if p == q:
+        print(f"{fn}: p=q (square, broken key)")
+    if p < q:
+        print(f"{fn}: p<q (unusual)")
+    elif not args.quiet:
+        print(f"{fn}: p>q (common)")
