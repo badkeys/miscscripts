@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #
 # calculates spkisha256 hash from:
-# * private keys (PKCS1/PKCS8)
+# * private and public keys (PKCS1/PKCS8)
+# * X.509 certificates and certificate requests
 
 import argparse
 import hashlib
