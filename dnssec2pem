@@ -4,7 +4,7 @@ import base64
 import re
 import sys
 
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 if sys.argv[1] == "-":
@@ -19,9 +19,8 @@ out = re.findall("25[67] 3 [0-9]{1,2} [A-Za-z0-9/+= ]*", content)
 for x in out:
     o = x.split(" ", 3)
     keytype = int(o[2])
+    key = base64.b64decode(o[3].replace(" ", ""))
     if keytype in [1, 5, 7, 8, 10]:
-        b = o[3].replace(" ", "")
-        key = base64.b64decode(b)
         if key[0] == 1:
             e = int.from_bytes(key[1:2], byteorder="big")
             n = int.from_bytes(key[2:], byteorder="big")
@@ -31,8 +30,24 @@ for x in out:
         else:
             print("broken")
             continue
-        rsakey = rsa.RSAPublicNumbers(e, n).public_key()
-        pem = rsakey.public_bytes(Encoding.PEM, PublicFormat.PKCS1)
-        print(pem.decode(), end="")
+        key = rsa.RSAPublicNumbers(e, n).public_key()
+    elif keytype == 13:
+        if len(key) != 64:
+            print("Wrong key size {len(key)} for ECDSA/P256, expected 64")
+            continue
+        x = int.from_bytes(key[0:32], byteorder="big")
+        y = int.from_bytes(key[32:64], byteorder="big")
+        key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
+    elif keytype == 14:
+        if len(key) != 96:
+            print("Wrong key size {len(key)} for ECDSA/P256, expected 64")
+            continue
+        x = int.from_bytes(key[0:48], byteorder="big")
+        y = int.from_bytes(key[48:96], byteorder="big")
+        key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP384R1()).public_key()
     else:
         print("Unsupported key type")
+        continue
+
+    pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    print(pem.decode(), end="")
