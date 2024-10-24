@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+
+import base64
+import re
+import sys
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+if sys.argv[1] == "-":
+    f = sys.stdin
+else:
+    f = open(sys.argv[1])
+
+content = f.read()
+
+out = re.findall("25[67] 3 [0-9]{1,2} [A-Za-z0-9/+= ]*", content)
+
+for x in out:
+    o = x.split(" ", 3)
+    keytype = int(o[2])
+    if keytype in [1, 5, 7, 8, 10]:
+        b = o[3].replace(" ", "")
+        key = base64.b64decode(b)
+        if key[0] == 1:
+            e = int.from_bytes(key[1:2], byteorder="big")
+            n = int.from_bytes(key[2:], byteorder="big")
+        elif key[0] == 3:
+            e = int.from_bytes(key[1:4], byteorder="big")
+            n = int.from_bytes(key[4:], byteorder="big")
+        else:
+            print("broken")
+            continue
+        rsakey = rsa.RSAPublicNumbers(e, n).public_key()
+        pem = rsakey.public_bytes(Encoding.PEM, PublicFormat.PKCS1)
+        print(pem.decode(), end="")
+    else:
+        print("Unsupported key type")
