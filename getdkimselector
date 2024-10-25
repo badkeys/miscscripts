@@ -35,7 +35,7 @@ def parse_mail(em):
             if ("d" not in dkim) or ("s" not in dkim):
                 # looks invalid
                 continue
-            if (dkim["s"] == "") or (dkim["s"].isascii() == False):
+            if (dkim["s"] == "") or (dkim["s"].isascii() is False):
                 continue
             newhost = f"{dkim['s']}._domainkey.{dkim['d']}"
             if newhost not in hosts:
