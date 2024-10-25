@@ -2,6 +2,7 @@
 # convert "OPENSSH PRIVATE KEY" format to standard PKCS/PEM
 
 import sys
+
 from cryptography.hazmat.primitives import serialization
 
 with open(sys.argv[1], "rb") as f:

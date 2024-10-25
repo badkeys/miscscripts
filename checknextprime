@@ -5,8 +5,9 @@
 
 import os
 import sys
-import gmpy2
+
 import badkeys
+import gmpy2
 
 xdir = sys.argv[1]
 
