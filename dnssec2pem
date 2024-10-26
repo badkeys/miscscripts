@@ -10,17 +10,17 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 if sys.argv[1] == "-":
     f = sys.stdin
 else:
-    f = open(sys.argv[1])
+    f = open(sys.argv[1], encoding="ascii", errors="replace")
 
 content = f.read()
 
 out = re.findall("25[67] 3 [0-9]{1,2} [A-Za-z0-9/+= ]*", content)
 
-for x in out:
-    o = x.split(" ", 3)
+for rec in out:
+    o = rec.split(" ", 3)
     keytype = int(o[2])
     key = base64.b64decode(o[3].replace(" ", ""))
-    if keytype in [1, 5, 7, 8, 10]:
+    if keytype in {1, 5, 7, 8, 10}:
         if key[0] == 1:
             e = int.from_bytes(key[1:2], byteorder="big")
             n = int.from_bytes(key[2:], byteorder="big")

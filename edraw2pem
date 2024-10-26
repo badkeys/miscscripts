@@ -40,7 +40,6 @@ if args.ed448priv:
 elif args.ed448pub:
     key = ed448.Ed448PublicKey.from_public_bytes(binx)
     pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
-#    pem = key.public_bytes(Encoding.OpenSSH, PublicFormat.OpenSSH)
 elif args.ed25519priv:
     key = ed25519.Ed25519PrivateKey.from_private_bytes(binx)
     pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())

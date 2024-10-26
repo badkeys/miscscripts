@@ -4,6 +4,7 @@
 # between their p and q value.
 
 import os
+import pathlib
 import sys
 
 import badkeys
@@ -12,15 +13,12 @@ import gmpy2
 xdir = sys.argv[1]
 
 for fn in os.listdir(xdir):
-    with open(f"{xdir}/{fn}") as f:
-        crt = f.read()
-        r = badkeys.detectandcheck(crt)
-        p = int(r["results"]["fermat"]["p"])
-        q = int(r["results"]["fermat"]["q"])
-        if p > q:
-            t = p
-            p = q
-            q = t
-        for x in range(p + 1, q):
-            if gmpy2.is_prime(x):
-                print(f"prime found in {fn}")
+    crt = pathlib.Path(f"{xdir}/{fn}").read_text(encoding="ascii", errors="replace")
+    r = badkeys.detectandcheck(crt)
+    p = int(r["results"]["fermat"]["p"])
+    q = int(r["results"]["fermat"]["q"])
+    if p > q:
+        p, q = q, p
+    for x in range(p + 1, q):
+        if gmpy2.is_prime(x):
+            print(f"prime found in {fn}")
