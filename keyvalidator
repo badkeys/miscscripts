@@ -24,6 +24,8 @@ def checkkeyfile(fp, quiet=False):
         else:
             print(f"Unexpected error: {e}")
         return
+    except TypeError:  # password-protected key
+        return
 
     if isinstance(key, rsa.RSAPrivateKey):
         # checked on import so ok
