@@ -17,10 +17,12 @@ def checkkeyfile(fp, quiet=False):
     try:
         key = load_pem_private_key(d, password=None)
     except ValueError as e:
-        if repr(e) == "Invalid private key":
+        if str(e) == "Invalid private key":
             print(f"{fp} looks like invalid RSA key")
-        else:
+        elif "Could not deserialize key data" in str(e):
             print(f"{fp} does not contain parsable key")
+        else:
+            print(f"Unexpected error: {e}")
         return
 
     if isinstance(key, rsa.RSAPrivateKey):
