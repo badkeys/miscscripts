@@ -22,9 +22,13 @@ def checkkeyfile(fp, quiet=False):
         elif "Could not deserialize key data" in str(e):
             print(f"{fp} does not contain parsable key")
         else:
-            print(f"Unexpected error: {e}")
+            print(f"Unexpected error ({fp}): {e}")
         return
-    except TypeError:  # password-protected key
+    except TypeError:
+        # password-protected key
+        return
+    except cryptography.exceptions.UnsupportedAlgorithm:
+        # e.g. unsupported elliptic curve
         return
 
     if isinstance(key, rsa.RSAPrivateKey):
