@@ -58,7 +58,8 @@ def checkkeyfile(fp, quiet=False):
         except cryptography.exceptions.InvalidSignature:
             print(f"Invalid DSA key (verify) in {fp}")
     else:
-        print(f"Cannot verify key type {type(key)} in {fp}")
+        kn = type(key).__name__.removesuffix("PrivateKey")
+        print(f"Cannot verify key type {kn} in {fp}")
 
 
 ap = argparse.ArgumentParser()
