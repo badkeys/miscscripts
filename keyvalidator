@@ -45,14 +45,18 @@ def checkkeyfile(fp, quiet=False):
         except cryptography.exceptions.InvalidSignature:
             print(f"Invalid EC key in {fp}")
     elif isinstance(key, dsa.DSAPrivateKey):
-        sig = key.sign(rdat, hashes.SHA256())
+        try:
+            sig = key.sign(rdat, hashes.SHA256())
+        except ValueError:
+            print(f"Invalid DSA key (sign) in {fp}")
+            return
         pubkey = key.public_key()
         try:
             pubkey.verify(sig, rdat, hashes.SHA256())
             if not quiet:
                 print(f"DSA key ok in {fp}")
         except cryptography.exceptions.InvalidSignature:
-            print(f"Invalid DSA key in {fp}")
+            print(f"Invalid DSA key (verify) in {fp}")
     else:
         print(f"Cannot verify key type {type(key)} in {fp}")
 
