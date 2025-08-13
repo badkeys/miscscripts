@@ -1,22 +1,18 @@
 #!/usr/bin/python3
+#
+# SPDX-License-Identifier: MIT
 
+import argparse
 import base64
+import pathlib
 import re
 import sys
 
 from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-if sys.argv[1] == "-":
-    f = sys.stdin
-else:
-    f = open(sys.argv[1], encoding="ascii", errors="replace")
 
-content = f.read()
-
-out = re.findall("25[67] 3 [0-9]{1,2} [A-Za-z0-9/+= ]*", content)
-
-for rec in out:
+def rec2key(rec):
     o = rec.split(" ", 3)
     keytype = int(o[2])
     key = base64.b64decode(o[3].replace(" ", ""))
@@ -28,34 +24,55 @@ for rec in out:
             e = int.from_bytes(key[1:4], byteorder="big")
             n = int.from_bytes(key[4:], byteorder="big")
         else:
-            print("broken")
-            continue
-        key = rsa.RSAPublicNumbers(e, n).public_key()
-    elif keytype == 13:
+            sys.stderr.write("broken\n")
+            return None
+        return rsa.RSAPublicNumbers(e, n).public_key()
+    if keytype == 13:
         if len(key) != 64:
-            print("Wrong key size {len(key)} for ECDSA/P256, expected 64")
-            continue
+            sys.stderr.write(f"Wrong key size {len(key)} for ECDSA/P256, expected 64\n")
+            return None
         x = int.from_bytes(key[0:32], byteorder="big")
         y = int.from_bytes(key[32:64], byteorder="big")
-        key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
-    elif keytype == 14:
+        return ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
+    if keytype == 14:
         if len(key) != 96:
-            print("Wrong key size {len(key)} for ECDSA/P384, expected 96")
-            continue
+            sys.stderr.write(f"Wrong key size {len(key)} for ECDSA/P384, expected 96\n")
+            return None
         x = int.from_bytes(key[0:48], byteorder="big")
         y = int.from_bytes(key[48:96], byteorder="big")
-        key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP384R1()).public_key()
-    elif keytype == 15:
+        return ec.EllipticCurvePublicNumbers(x, y, ec.SECP384R1()).public_key()
+    if keytype == 15:
         if len(key) != 32:
-            print("Wrong key size {len(key)} for Ed25519, expected 32")
-        key = ed25519.Ed25519PublicKey.from_public_bytes(key)
-    elif keytype == 16:
+            sys.stderr.write(f"Wrong key size {len(key)} for Ed25519, expected 32\n")
+            return None
+        return ed25519.Ed25519PublicKey.from_public_bytes(key)
+    if keytype == 16:
         if len(key) != 57:
-            print("Wrong key size {len(key)} for Ed448, expected 57")
-        key = ed448.Ed448PublicKey.from_public_bytes(key)
-    else:
-        print("Unsupported key type")
-        continue
+            sys.stderr.write(f"Wrong key size {len(key)} for Ed448, expected 57\n")
+        return ed448.Ed448PublicKey.from_public_bytes(key)
+    sys.stderr.write(f"Unsupported key type {keytype}\n")
+    return None
 
-    pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
-    print(pem.decode(), end="")
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input", nargs="+")
+ap.add_argument("-d", "--directory", help="Output directory")
+args = ap.parse_args()
+
+for fn in args.input:
+    if fn == "-":
+        content = sys.stdin.read()
+    else:
+        content = pathlib.Path(fn).read_text(encoding="ascii", errors="replace")
+
+    for rec in re.findall("25[67] 3 [0-9]{1,2} [A-Za-z0-9/+= ]*", content):
+        key = rec2key(rec)
+        if not key:
+            sys.stderr.write(f"Parser error in {fn}\n")
+            continue
+        pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        if args.directory:
+            ofn = fn.split("/")[-1]
+            pathlib.Path(f"{args.directory}/{ofn}").write_bytes(pem)
+        else:
+            print(pem.decode(), end="")
