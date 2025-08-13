@@ -40,7 +40,7 @@ for rec in out:
         key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
     elif keytype == 14:
         if len(key) != 96:
-            print("Wrong key size {len(key)} for ECDSA/P256, expected 64")
+            print("Wrong key size {len(key)} for ECDSA/P384, expected 96")
             continue
         x = int.from_bytes(key[0:48], byteorder="big")
         y = int.from_bytes(key[48:96], byteorder="big")
