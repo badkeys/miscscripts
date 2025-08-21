@@ -4,6 +4,7 @@
 
 import argparse
 import base64
+import binascii
 import pathlib
 import re
 import sys
@@ -12,57 +13,73 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 
+def errmsg(msg):
+    print(msg, file=sys.stderr)
+
+
 def rec2key(rec):
     o = rec.split(maxsplit=3)
     keytype = int(o[2])
-    key = base64.b64decode(o[3].replace(" ", ""))
+    try:
+        key = base64.b64decode(o[3].replace(" ", "").encode())
+    except binascii.Error:
+        errmsg("Invalid base64")
+        return None
     if keytype in {1, 5, 7, 8, 10}:
+        # RSA key format description in RFC 3110 Section 2
+        if len(key) < 3:
+            errmsg("RSA key too short")
+            return None
         if key[0] == 0:
             elen = int.from_bytes(key[1:3], byteorder="big")
         else:
             elen = key[0]
 
         if len(key) < elen + 1:
-            sys.stderr.write("invalid RSA exponent length\n")
+            errmsg("Invalid RSA exponent length")
             return None
 
         e = int.from_bytes(key[1:1 + elen], byteorder="big")
         n = int.from_bytes(key[1 + elen:], byteorder="big")
-        return rsa.RSAPublicNumbers(e, n).public_key()
+        try:
+            return rsa.RSAPublicNumbers(e, n).public_key()
+        except ValueError:
+            errmsg("Invalid RSA values")
+            return None
     if keytype == 13:
         if len(key) != 64:
-            sys.stderr.write(f"Wrong key size {len(key)} for ECDSA/P256, expected 64\n")
+            errmsg(f"Wrong key size {len(key)} for ECDSA/P256, expected 64")
             return None
         x = int.from_bytes(key[0:32], byteorder="big")
         y = int.from_bytes(key[32:64], byteorder="big")
         try:
             return ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
         except ValueError as e:
-            sys.stderr.write("Invalid ECDSA/P256 key\n")
-            sys.stderr.write(f"{e!s}\n")
+            errmsg("Invalid ECDSA/P256 key")
+            errmsg(f"{e!s}")
             return None
     if keytype == 14:
         if len(key) != 96:
-            sys.stderr.write(f"Wrong key size {len(key)} for ECDSA/P384, expected 96\n")
+            errmsg(f"Wrong key size {len(key)} for ECDSA/P384, expected 96")
             return None
         x = int.from_bytes(key[0:48], byteorder="big")
         y = int.from_bytes(key[48:96], byteorder="big")
         try:
             return ec.EllipticCurvePublicNumbers(x, y, ec.SECP384R1()).public_key()
         except ValueError as e:
-            sys.stderr.write("Invalid ECDSA/P384 key\n")
-            sys.stderr.write(f"{e!s}\n")
+            errmsg("Invalid ECDSA/P384 key")
+            errmsg(f"{e!s}")
             return None
     if keytype == 15:
         if len(key) != 32:
-            sys.stderr.write(f"Wrong key size {len(key)} for Ed25519, expected 32\n")
+            errmsg(f"Wrong key size {len(key)} for Ed25519, expected 32")
             return None
         return ed25519.Ed25519PublicKey.from_public_bytes(key)
     if keytype == 16:
         if len(key) != 57:
-            sys.stderr.write(f"Wrong key size {len(key)} for Ed448, expected 57\n")
+            errmsg(f"Wrong key size {len(key)} for Ed448, expected 57")
         return ed448.Ed448PublicKey.from_public_bytes(key)
-    sys.stderr.write(f"Unsupported key type {keytype}\n")
+    errmsg(f"Unsupported key type {keytype}")
     return None
 
 
@@ -78,10 +95,10 @@ for fn in args.input:
         content = pathlib.Path(fn).read_text(encoding="ascii", errors="replace")
 
     count = 0
-    for rec in re.findall(r"[0-9]{1,3}\s+[0-9]{1,3}\s+[0-9]{1,3}\s+[A-Za-z0-9/+= ]*", content):
+    for rec in re.findall(r"[0-9]{1,3}\s+[0-9]{1,3}\s+[0-9]{1,3}\s+[A-Za-z0-9/+= ]+", content):
         key = rec2key(rec)
         if not key:
-            sys.stderr.write(f"Parser error in {fn}\n")
+            errmsg(f"Parser error in {fn}")
             continue
         pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
         if args.directory:
