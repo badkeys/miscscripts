@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 
 def rec2key(rec):
-    o = rec.split(" ", 3)
+    o = rec.split(maxsplit=3)
     keytype = int(o[2])
     key = base64.b64decode(o[3].replace(" ", ""))
     if keytype in {1, 5, 7, 8, 10}:
@@ -78,7 +78,7 @@ for fn in args.input:
         content = pathlib.Path(fn).read_text(encoding="ascii", errors="replace")
 
     count = 0
-    for rec in re.findall("[0-9]{1,3} [0-9]{1,3} [0-9]{1,3} [A-Za-z0-9/+= ]*", content):
+    for rec in re.findall(r"[0-9]{1,3}\s+[0-9]{1,3}\s+[0-9]{1,3}\s+[A-Za-z0-9/+= ]*", content):
         key = rec2key(rec)
         if not key:
             sys.stderr.write(f"Parser error in {fn}\n")
