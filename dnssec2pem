@@ -78,6 +78,7 @@ def rec2key(rec):
     if keytype == 16:
         if len(key) != 57:
             errmsg(f"Wrong key size {len(key)} for Ed448, expected 57")
+            return None
         return ed448.Ed448PublicKey.from_public_bytes(key)
     errmsg(f"Unsupported key type {keytype}")
     return None
