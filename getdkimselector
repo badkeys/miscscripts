@@ -22,7 +22,7 @@ def parse_mail(em):
             continue
         for header in sigs:
             sig = str(header)
-            sig = sig.replace("\n", "").replace(" ", "").replace("\t", "")
+            sig = sig.translate({ord(c): None for c in '\n\r\t '})
             dkim = {}
             for f in sig.split(";"):
                 fs = f.split("=", 2)
