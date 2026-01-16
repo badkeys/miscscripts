@@ -22,7 +22,7 @@ def parse_mail(em):
             continue
         for header in sigs:
             sig = str(header)
-            sig = sig.translate({ord(c): None for c in '\n\r\t '})
+            sig = sig.translate({ord(c): None for c in "\n\r\t "})
             dkim = {}
             for f in sig.split(";"):
                 fs = f.split("=", 2)
@@ -44,28 +44,29 @@ def parse_mail(em):
 
 
 ap = argparse.ArgumentParser()
-ap.add_argument("path")
+ap.add_argument("paths", nargs="+")
 ap.add_argument("-v", "--verbose", action="store_true")
 ap.add_argument("-m", "--mbox", action="store_true")
 args = ap.parse_args()
 
 hosts = set()
-for root, _, files in os.walk(args.path):
-    for name in files:
-        fn = os.path.join(root, name)
+for path in args.paths:
+    for root, _, files in os.walk(path):
+        for name in files:
+            fn = os.path.join(root, name)
 
-        if args.mbox:
-            mb = mailbox.mbox(fn)
-            try:
-                for m in mb.iteritems():
-                    parse_mail(m[1])
-            except UnicodeDecodeError:
-                pass
-
-        else:  # maildir mode
-            with open(fn, "rb") as fp:
+            if args.mbox:
+                mb = mailbox.mbox(fn)
                 try:
-                    parse_mail(email.message_from_binary_file(fp))
-                except Exception as e:
-                    print(f"Something went wrong while parsing {fn}")
-                    print(e)
+                    for m in mb.iteritems():
+                        parse_mail(m[1])
+                except UnicodeDecodeError:
+                    pass
+
+            else:  # maildir mode
+                with open(fn, "rb") as fp:
+                    try:
+                        parse_mail(email.message_from_binary_file(fp))
+                    except Exception as e:
+                        print(f"Something went wrong while parsing {fn}")
+                        print(e)
