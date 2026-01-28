@@ -1,0 +1,18 @@
+#!/usr/bin/python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+
+import argparse
+
+import gmpy2
+
+ap = argparse.ArgumentParser()
+ap.add_argument("maybeprime", nargs="+", help="Input value (hex)")
+args = ap.parse_args()
+
+for maybeprime in args.maybeprime:
+    if gmpy2.is_prime(int(maybeprime, 16)):
+        print(f"Prime: {maybeprime}")
+    else:
+        print(f"Not prime: {maybeprime}")

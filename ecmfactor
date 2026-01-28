@@ -1,0 +1,36 @@
+#!/usr/bin/python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+#
+# Simple wrapper for factoring a hex input number with gmp-ecm (Elliptic
+# Curve Method) and default settings.
+# Needs gmp-ecm: https://gitlab.inria.fr/zimmerma/ecm
+#
+# Usage example (has non-trivial, 64-bit prime factor):
+#   ./ecmfactor 95050b185a7e9147cb60a84729b239e0deac19b4ba4137ff87f4ccae8c13b6ab
+
+import argparse
+import subprocess
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input", nargs="+", help="Value to be factored (hex number)")
+args = ap.parse_args()
+
+for nhex in args.input:
+    n = str(int(nhex, 16))
+
+    proc = subprocess.Popen(["ecm", "-q", "1000000"], text=True,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+    out = proc.communicate(input=str(n))[0].strip().split(" ")
+    if len(out) == 1:
+        print(f"WARNING: Could not factor {nhex}")
+        continue
+    factor, cofactor = out
+    print(factor)
+    factor = int(factor)
+    cofactor = int(cofactor)
+
+    print(f"Factor:   {factor:02x}")
+    print(f"Cofactor: {cofactor:02x}")
