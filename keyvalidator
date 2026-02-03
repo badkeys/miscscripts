@@ -19,8 +19,8 @@ def checkkeyobj(priv):
             alg = ec.ECDSA(hashes.SHA256())
         else:
             alg = hashes.SHA256()
-        sig = priv.sign(b"2u_Yg7", alg)
         try:
+            sig = priv.sign(b"2u_Yg7", alg)
             pubkey = priv.public_key()
         except ValueError:
             return True
