@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+#
+# WARNING: Script is now developed in the keymonitor repository and will soon be removed here:
+# https://github.com/badkeys/keymonitor/blob/main/dkim/getdkimselector
 
 import argparse
 import email.parser
