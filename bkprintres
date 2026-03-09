@@ -1,0 +1,24 @@
+#!/usr/bin/python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+#
+# Converts badkeys json log to standard badkeys console output
+
+import argparse
+import json
+
+from badkeys.runcli import _printresults
+
+ap = argparse.ArgumentParser()
+ap.add_argument("logfile")
+ap.add_argument("--all", action="store_true")
+ap.add_argument("--json", action="store_true")
+ap.add_argument("--verbose", action="store_true")
+ap.add_argument("--url", action="store_true")
+args = ap.parse_args()
+
+with open(args.logfile) as f:
+    for line in f:
+        j = json.loads(line)
+        _printresults(j, j["where"], args=args)
