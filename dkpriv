@@ -1,0 +1,31 @@
+#!/usr/bin/python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+#
+# Sometimes, people accidentally publish private keys in DKIM records,
+# script to extract them.
+
+import argparse
+import base64
+import pathlib
+
+from cryptography.hazmat.primitives import serialization
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input", nargs="+")
+args = ap.parse_args()
+
+for fn in args.input:
+    raw = pathlib.Path(fn).read_text()
+    raw = raw.replace(" ", "").replace('"', "")
+    for el in raw.split(";"):
+        if el.startswith("p="):
+            bkey = el[2:]
+            break
+    der = base64.b64decode(bkey.encode())
+    pkey = serialization.load_der_private_key(der, password=None)
+    pem = pkey.private_bytes(serialization.Encoding.PEM,
+                             serialization.PrivateFormat.TraditionalOpenSSL,
+                             serialization.NoEncryption()).decode()
+    print(pem, end="")
