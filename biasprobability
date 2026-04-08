@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+#
+# Calculate thresholds for rsabias check with low false positive rate
+
+import scipy
+
+
+def getp(n, thres):
+    k = n * (50 - thres) // 100
+    p = 0.5
+    return scipy.stats.binom.cdf(k, n, p) * 2
+
+
+limit = 1 / (25 * 10 ** 12)
+print(f"{limit:.25f} limit")
+
+for bl in [512, 768, 1000, 1024, 1536, 2000, 2048]:
+    for t in range(2, 20):
+        pp = getp(bl, t)
+        if pp < limit:
+            print(f"{getp(bl, t):.25f} ({bl} {t})")
+            break
