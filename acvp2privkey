@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+#
+# Note: this needs to be adopted for each test and key type.
+# Currently, only ML-DSA keygen tests are supported:
+# https://github.com/usnistgov/ACVP-Server/blob/master/gen-val/json-files/ML-DSA-keyGen-FIPS204/internalProjection.json
+
+import argparse
+import binascii
+import json
+import os
+import pathlib
+import sys
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import mldsa
+
+ap = argparse.ArgumentParser()
+ap.add_argument("input")
+ap.add_argument("--outdir", default="out/")
+args = ap.parse_args()
+
+os.mkdir(args.outdir)
+
+with open(args.input) as f:
+    jdata = json.load(f)
+
+for group in jdata["testGroups"]:
+    alg = group["parameterSet"].replace("-", "").lower()
+
+    for test in group["tests"]:
+        seed = binascii.unhexlify(test["seed"])
+        if alg == "mldsa44":
+            key = mldsa.MLDSA44PrivateKey.from_seed_bytes(seed)
+        elif alg == "mldsa65":
+            key = mldsa.MLDSA65PrivateKey.from_seed_bytes(seed)
+        elif alg == "mldsa87":
+            key = mldsa.MLDSA87PrivateKey.from_seed_bytes(seed)
+        else:
+            continue
+
+        pubkey_ref = binascii.unhexlify(test["pk"])
+        pubkey = key.public_key().public_bytes_raw()
+        if pubkey != pubkey_ref:
+            sys.exit("ERROR: pubkey does not match")
+        tcid = test["tcId"]
+
+        privpem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                    serialization.NoEncryption())
+
+        of = f"out/{alg}.key"
+        if os.path.exists(of):
+            sys.exit(f"ERROR: {of} already exists")
+        pathlib.Path(f"out/{alg}-{tcid}.key").write_bytes(privpem)
