@@ -16,6 +16,7 @@ ap.add_argument("--all", action="store_true")
 ap.add_argument("--json", action="store_true")
 ap.add_argument("--verbose", action="store_true")
 ap.add_argument("--url", action="store_true")
+ap.add_argument("--keyrecover", action="store_true")
 args = ap.parse_args()
 
 with open(args.logfile) as f:
