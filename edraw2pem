@@ -5,7 +5,7 @@ import base64
 import binascii
 import sys
 
-from cryptography.hazmat.primitives.asymmetric import ed448, ed25519
+from cryptography.hazmat.primitives.asymmetric import ed448, ed25519, x25519
 from cryptography.hazmat.primitives.serialization import (Encoding, NoEncryption, PrivateFormat,
                                                           PublicFormat)
 
@@ -15,6 +15,8 @@ ap.add_argument("-x", "--hex", action="store_true", help="hex input instead of b
 ap.add_argument("--ed25519priv", action="store_true", help="Ed448 private key")
 ap.add_argument("--ed448pub", action="store_true", help="Ed448 public key")
 ap.add_argument("--ed448priv", action="store_true", help="Ed448 private key")
+ap.add_argument("--x25519pub", action="store_true", help="X25519 public key")
+ap.add_argument("--x25519priv", action="store_true", help="X25519 private key")
 args = ap.parse_args()
 
 if args.ed448priv or args.ed448pub:
@@ -35,6 +37,12 @@ if args.ed448priv:
     pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
 elif args.ed448pub:
     key = ed448.Ed448PublicKey.from_public_bytes(binx)
+    pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+elif args.x25519priv:
+    key = x25519.X25519PrivateKey.from_private_bytes(binx)
+    pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+elif args.x25519pub:
+    key = x25519.X25519PublicKey.from_public_bytes(binx)
     pem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 elif args.ed25519priv:
     key = ed25519.Ed25519PrivateKey.from_private_bytes(binx)
