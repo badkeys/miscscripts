@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+
+import argparse
+import binascii
+import pathlib
+import re
+import subprocess
+import tempfile
+
+from cryptography.hazmat.primitives.asymmetric import x25519
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+BEGIN = b"-----BEGIN ECHCONFIG-----\n"
+END = b"\n-----END ECHCONFIG-----\n"
+
+ap = argparse.ArgumentParser()
+ap.add_argument("files", nargs="+")
+args = ap.parse_args()
+
+TD = tempfile.mkdtemp()
+
+for fn in args.files:
+    dat = pathlib.Path(fn).read_bytes()
+    if b"ech=" not in dat:
+        continue
+    b64 = dat.split(b"ech=", 1)[1].split(b" ", 1)[0]
+    pem = BEGIN + b64 + END
+    sfn = fn.split("/")[-1]
+    tname = f"{TD}/{sfn}.config"
+    pathlib.Path(tname).write_bytes(pem)
+
+    p = subprocess.run(["openssl4", "ech", "-in", tname, "-text"],
+                       stderr=subprocess.PIPE, check=False)
+    rx = re.findall(r"[0-9a-f]{64}", p.stderr.decode())
+    if not rx:
+        continue
+    rx = binascii.unhexlify(rx[0])
+    key = x25519.X25519PublicKey.from_public_bytes(rx)
+    kpem = key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+
+    pathlib.Path(f"pem/{sfn}.key").write_bytes(kpem)

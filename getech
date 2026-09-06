@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# SPDX-License-Identifier: 0BSD
+# Part of badkeys: https://badkeys.info/
+
+ech="$(dig +short -t HTTPS $1)"
+
+echo "$ech" | grep ech -q
+if [ $? -eq 0 ]; then
+	echo "$ech" >out/$1
+fi
