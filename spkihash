@@ -6,6 +6,7 @@
 
 import argparse
 import hashlib
+import pathlib
 import sys
 
 from cryptography import x509
@@ -19,8 +20,7 @@ ap.add_argument("-c", "--crtsh", action="store_true", help="Search URL for crt.s
 args = ap.parse_args()
 
 for fn in args.files:
-    with open(fn, "rb") as f:
-        d = f.read()
+    d = pathlib.Path(fn).read_bytes()
     try:
         if b"PRIVATE KEY-----" in d:
             key = serialization.load_pem_private_key(d, password=None)

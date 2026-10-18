@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 # convert "OPENSSH PRIVATE KEY" format to standard PKCS/PEM
 
+import pathlib
 import sys
 
 from cryptography.hazmat.primitives import serialization
 
-with open(sys.argv[1], "rb") as f:
-    key = f.read()
+key = pathlib.Path(sys.argv[1]).read_bytes()
 
 ckey = serialization.load_ssh_private_key(key, password=None)
 

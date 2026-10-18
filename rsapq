@@ -11,6 +11,7 @@
 # See also: https://bugzilla.mozilla.org/show_bug.cgi?id=1049435
 
 import argparse
+import pathlib
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -21,8 +22,7 @@ ap.add_argument("-q", "--quiet", action="store_true", help="only output unusual 
 args = ap.parse_args()
 
 for fn in args.files:
-    with open(fn, "rb") as f:
-        pem = f.read()
+    pem = pathlib.Path(fn).read_bytes()
     try:
         key = load_pem_private_key(pem, password=None)
     except Exception:
